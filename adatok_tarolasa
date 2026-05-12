@@ -1,0 +1,7 @@
+[FEGYVER]
+af = 15
+bf = 30
+cf = 50
+
+[KARAKTER]
+Birtok_Fegyver = af
