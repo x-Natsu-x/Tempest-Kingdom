@@ -1,0 +1,70 @@
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.util.RandomAccess;
+
+public class Main {
+    public static void main(String[] args) {
+        RandomAccessFile Adatok;
+
+        try {
+            Adatok = new RandomAccessFile("adatok_tarolasa.txt", "r");
+
+            String sor;
+            String Sajat_Fegyver = "";
+            while ((sor = Adatok.readLine()) != null) {
+                if (sor.startsWith("Birtok_Fegyver")) {
+                    Sajat_Fegyver = sor.split("=")[1].trim();
+                    break;
+                }
+            }
+            String Fegyver_Sebzés = "";
+            if (!Sajat_Fegyver.isEmpty()) {
+                Adatok.seek(0);
+                while ((sor = Adatok.readLine()) != null) {
+                    if (sor.startsWith(Sajat_Fegyver)) {
+                        Fegyver_Sebzés = sor.split("=")[1].trim();
+                        System.out.println("Ennyit sebez a fegyvered: "+Fegyver_Sebzés);
+                        break;
+                    }
+                }
+            }
+
+
+        } catch (Exception e) {
+            System.out.println("Valami nem jó "+e.getMessage());
+        }
+    }
+}
+
+/*
+try {
+    Adatok = new RandomAccessFile("adatok_tarolasa.txt", "r");
+    
+    String sor;
+    String Sajat_Fegyver = "";
+    while ((sor = Adatok.readLine()) != null) {
+        // contains-el biztonságosabb, hátha van előtte szóköz vagy [KARAKTER] header
+        if (sor.contains("Birtok_Fegyver")) {
+            Sajat_Fegyver = sor.split("=")[1].trim();
+            break;
+        }
+    }
+
+    if (!Sajat_Fegyver.isEmpty()) {
+        Adatok.seek(0);
+        while ((sor = Adatok.readLine()) != null) {
+            // Itt is vágjuk szét a sort, és az egyenlőségjel előtti részt hasonlítsuk össze
+            if (sor.contains("=")) {
+                String fegyverNev = sor.split("=")[0].trim();
+                if (fegyverNev.equals(Sajat_Fegyver)) {
+                    String fegyverSebzes = sor.split("=")[1].trim();
+                    System.out.println("Ennyit sebez a fegyvered (" + fegyverNev + "): " + fegyverSebzes);
+                    break;
+                }
+            }
+        }
+    }
+} catch (Exception e) {
+    e.printStackTrace(); // Így pontosan látod, hol a hiba, nem csak annyit, hogy "Valami nem jó"
+}
+ */
