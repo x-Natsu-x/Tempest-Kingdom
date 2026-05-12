@@ -1,7 +1,16 @@
+[PÁNCÉL]
+nincs = 0
+
+[PÁNCÉL VÉDETTSÉG]
+
 [FEGYVER]
-af = 15
-bf = 30
-cf = 50
+fist = 10
+wooden sword = 25
+long sword = 50
+
+[FEGYVER KÉPESSÉG]
 
 [KARAKTER]
-Birtok_Fegyver = af
+equipped_Weapon = fist
+charakter_hp = 30
+equipped_Armor = nincs
