@@ -1,0 +1,164 @@
+import com.googlecode.lanterna.TerminalPosition;
+import com.googlecode.lanterna.TextColor;
+import com.googlecode.lanterna.graphics.TextGraphics;
+import com.googlecode.lanterna.input.KeyStroke;
+import com.googlecode.lanterna.input.KeyType;
+import com.googlecode.lanterna.screen.Screen;
+import com.googlecode.lanterna.screen.TerminalScreen;
+import com.googlecode.lanterna.terminal.DefaultTerminalFactory;
+import com.googlecode.lanterna.terminal.Terminal;
+import com.googlecode.lanterna.TerminalSize;
+
+import java.io.IOException;
+
+public class Main {
+    public static void main(String[] args) {
+
+        try {
+
+            //Méret
+            DefaultTerminalFactory factory = new DefaultTerminalFactory();
+            factory.setInitialTerminalSize(new TerminalSize(180, 50));
+
+
+            //Terminál
+            Terminal ablak = factory.createTerminalEmulator();
+            Screen kepernyo = new TerminalScreen(ablak);
+            kepernyo.startScreen();
+            kepernyo.setCursorPosition(null);
+
+
+            //Karakter
+            int playerX = 90;
+            int playerY = 35;
+            boolean isRunning = true;
+            String karakter = "(<*-*)<";
+            int playerHP = 100;
+            long utolsoSebzesIdeje = 0;
+
+
+            //Boss
+            int bossX = 85;
+            int bossY = 20;
+            String[] shroomBoss = {
+                    "    .......    ",
+                    "  .'   o   '.  ",
+                    " / o       o \\ ",
+                    "|_____________|",
+                    "    | O_O |    ",
+                    "    |_____|    "
+            };
+
+
+            while (isRunning) {
+                kepernyo.clear();
+
+
+                //szin
+                TextGraphics rajzolo = kepernyo.newTextGraphics();
+
+
+                //Boss Aréna
+                rajzolo.setForegroundColor(TextColor.ANSI.WHITE);
+                //Felső fal
+                rajzolo.drawLine(new TerminalPosition(40,10), new TerminalPosition(140, 10), '█');
+                //Bal fal
+                rajzolo.drawLine(new TerminalPosition(40, 10), new TerminalPosition(40, 40), '█');
+                //Alsó fal
+                rajzolo.drawLine(new TerminalPosition(40, 40), new TerminalPosition(140, 40), '█');
+                //Jobb fal
+                rajzolo.drawLine(new TerminalPosition(140, 10), new TerminalPosition(140, 40), '█');
+
+                //Boss
+                rajzolo.setForegroundColor(TextColor.ANSI.GREEN);
+                for (int i = 0; i < shroomBoss.length; i++) {
+                    rajzolo.putString(new TerminalPosition(bossX, bossY + i), shroomBoss[i]);
+                }
+
+
+                //karakter
+                rajzolo.setForegroundColor(TextColor.ANSI.GREEN);
+                rajzolo.putString(new TerminalPosition(40, 8), "Élet: " + playerHP + " HP");
+                rajzolo.setForegroundColor(TextColor.ANSI.MAGENTA_BRIGHT);
+                rajzolo.putString(new TerminalPosition(playerX, playerY), karakter);
+
+
+                kepernyo.refresh();
+
+
+                //Karakter mozgás
+                KeyStroke gombnyomas = kepernyo.pollInput();
+                KeyStroke utolsoGomb = null;
+
+                while (gombnyomas != null) {
+                    utolsoGomb = gombnyomas;
+                    gombnyomas = kepernyo.pollInput();
+                }
+
+                if (utolsoGomb != null) {
+                    if (utolsoGomb.getKeyType() == KeyType.Escape) {
+                        isRunning = false;
+                    } else if (utolsoGomb.getKeyType() == KeyType.Character) {
+                        char betu = Character.toLowerCase(utolsoGomb.getCharacter());
+                        switch (betu) {
+                            case 'w':
+                                if (playerY > 11) {
+                                    playerY--;
+                                }
+                                break;
+                            case 's':
+                                if (playerY < 39) {
+                                    playerY++;
+                                }
+                                break;
+                            case 'a':
+                                if (playerX > 41) {
+                                    playerX--;
+                                }
+                                karakter = ">(*-*>)";
+                                break;
+                            case 'd':
+                                if (playerX < 133) {
+                                    playerX++;
+                                }
+                                karakter = "(<*-*)<";
+                                break;
+                        }
+                    }
+                }
+
+
+                //Boss-al való ütközés
+                int bossBal = bossX;
+                int bossJobb = bossX + 14;
+                int bossFent = bossY;
+                int bossLent = bossY + 5;
+
+                int jatekosBal = playerX;
+                int jatekosJobb = playerX + 6;
+                int jatekosFent = playerY;
+                int jatekosLent = playerY;
+
+                if (jatekosJobb >= bossBal && jatekosBal <= bossJobb && jatekosLent >= bossFent && jatekosFent <= bossLent) {
+                    long jelenlegiIdo = System.currentTimeMillis();
+                    if (jelenlegiIdo - utolsoSebzesIdeje >= 1500) {
+                        playerHP -= 5;
+                        if (playerHP < 0) playerHP = 0;
+                        utolsoSebzesIdeje = jelenlegiIdo;
+                    }
+                }
+
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+
+            }
+            kepernyo.stopScreen();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
