@@ -48,6 +48,49 @@ public class Main {
                     "    | O_O |    ",
                     "    |_____|    "
             };
+            
+            
+            //Arena, Goma, Player koordinátái
+            int arenaBal = 41;
+            int arenaJobb = 137;
+            int arenaFent = 11;
+            int arenaLent = 38;
+
+            int bossBal = bossX;
+            int bossJobb = bossX + 14;
+            int bossFent = bossY;
+            int bossLent = bossY + 5;
+
+            int jatekosBal = playerX;
+            int jatekosJobb = playerX + 6;
+            int jatekosFent = playerY;
+            int jatekosLent = playerY;
+
+            
+            //kisGoma heyének meghatározása
+            int kisGombaX;
+            int kisGombaY;
+            kisGombaX = (int)(Math.random() * (arenaJobb - arenaBal - 3)) + arenaBal;
+            kisGombaY = (int)(Math.random() * (arenaLent - arenaFent - 2)) + arenaFent;
+
+           
+            
+            boolean spawnolhat = false;
+            while (!spawnolhat) {
+
+                kisGombaX = arenaBal + (int)(Math.random() * (arenaJobb - arenaBal));
+                kisGombaY = arenaFent + (int)(Math.random() * (arenaLent - arenaFent));
+
+                //kisGomba hitbox
+                int kisBal = kisGombaX;
+                int kisJobb = kisGombaX + 2;
+                int kisFent = kisGombaY;
+                int kisLent = kisGombaY + 1;
+                boolean utkozikBossal = kisJobb >= bossBal && kisBal <= bossJobb && kisLent >= bossFent && kisFent <= bossLent;
+                if (!utkozikBossal) {
+                    spawnolhat = true;
+                }
+            }
 
 
             while (isRunning) {
@@ -74,8 +117,12 @@ public class Main {
                 for (int i = 0; i < shroomBoss.length; i++) {
                     rajzolo.putString(new TerminalPosition(bossX, bossY + i), shroomBoss[i]);
                 }
+                rajzolo.setForegroundColor(TextColor.ANSI.GREEN_BRIGHT);
+                rajzolo.putString(new TerminalPosition(kisGombaX, kisGombaY), "███");
+                rajzolo.putString(new TerminalPosition(kisGombaX, kisGombaY + 1), "███");
 
 
+                
                 //karakter
                 rajzolo.setForegroundColor(TextColor.ANSI.GREEN);
                 rajzolo.putString(new TerminalPosition(40, 8), "Élet: " + playerHP + " HP");
@@ -129,15 +176,7 @@ public class Main {
 
 
                 //Boss-al való ütközés
-                int bossBal = bossX;
-                int bossJobb = bossX + 14;
-                int bossFent = bossY;
-                int bossLent = bossY + 5;
 
-                int jatekosBal = playerX;
-                int jatekosJobb = playerX + 6;
-                int jatekosFent = playerY;
-                int jatekosLent = playerY;
 
                 if (jatekosJobb >= bossBal && jatekosBal <= bossJobb && jatekosLent >= bossFent && jatekosFent <= bossLent) {
                     long jelenlegiIdo = System.currentTimeMillis();
