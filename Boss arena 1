@@ -16,16 +16,14 @@ public class Main {
 
         try {
 
-            //Méret
+            //Terminál
             DefaultTerminalFactory factory = new DefaultTerminalFactory();
             factory.setInitialTerminalSize(new TerminalSize(180, 50));
-
-
-            //Terminál
             Terminal ablak = factory.createTerminalEmulator();
             Screen kepernyo = new TerminalScreen(ablak);
             kepernyo.startScreen();
             kepernyo.setCursorPosition(null);
+
 
 
             //Karakter
@@ -34,8 +32,8 @@ public class Main {
             boolean isRunning = true;
             String karakter = "(<*-*)<";
             int playerHP = 100;
-            long utolsoSebzesIdeje = 0;
-
+            long utolsoGombaSebzes = 0;
+            long utolsoKisGombaSebzes = 0;
 
             //Boss
             int bossX = 85;
@@ -48,82 +46,88 @@ public class Main {
                     "    | O_O |    ",
                     "    |_____|    "
             };
-            
-            
-            //Arena, Goma, Player koordinátái
+
+            //Arena határai
             int arenaBal = 41;
             int arenaJobb = 137;
             int arenaFent = 11;
             int arenaLent = 38;
 
+            // Boss határai
             int bossBal = bossX;
             int bossJobb = bossX + 14;
             int bossFent = bossY;
             int bossLent = bossY + 5;
 
-            int jatekosBal = playerX;
-            int jatekosJobb = playerX + 6;
-            int jatekosFent = playerY;
-            int jatekosLent = playerY;
-
-            
-            //kisGoma heyének meghatározása
-            int kisGombaX;
-            int kisGombaY;
-            kisGombaX = (int)(Math.random() * (arenaJobb - arenaBal - 3)) + arenaBal;
-            kisGombaY = (int)(Math.random() * (arenaLent - arenaFent - 2)) + arenaFent;
-
-           
-            
+            //kisGomba generálása
+            int kisGombaX = 0;
+            int kisGombaY = 0;
             boolean spawnolhat = false;
-            while (!spawnolhat) {
+            int kisBal = 0, kisJobb = 0, kisFent = 0, kisLent = 0;
 
+            while (!spawnolhat) {
                 kisGombaX = arenaBal + (int)(Math.random() * (arenaJobb - arenaBal));
                 kisGombaY = arenaFent + (int)(Math.random() * (arenaLent - arenaFent));
 
-                //kisGomba hitbox
-                int kisBal = kisGombaX;
-                int kisJobb = kisGombaX + 2;
-                int kisFent = kisGombaY;
-                int kisLent = kisGombaY + 1;
+                kisBal = kisGombaX;
+                kisJobb = kisGombaX + 2;
+                kisFent = kisGombaY;
+                kisLent = kisGombaY + 1;
+
                 boolean utkozikBossal = kisJobb >= bossBal && kisBal <= bossJobb && kisLent >= bossFent && kisFent <= bossLent;
                 if (!utkozikBossal) {
                     spawnolhat = true;
                 }
             }
+            long utolsoGombaTeleportalasIdeje = System.currentTimeMillis();
+
 
 
             while (isRunning) {
                 kepernyo.clear();
-
-
-                //szin
                 TextGraphics rajzolo = kepernyo.newTextGraphics();
-
 
                 //Boss Aréna
                 rajzolo.setForegroundColor(TextColor.ANSI.WHITE);
-                //Felső fal
-                rajzolo.drawLine(new TerminalPosition(40,10), new TerminalPosition(140, 10), '█');
-                //Bal fal
-                rajzolo.drawLine(new TerminalPosition(40, 10), new TerminalPosition(40, 40), '█');
-                //Alsó fal
-                rajzolo.drawLine(new TerminalPosition(40, 40), new TerminalPosition(140, 40), '█');
-                //Jobb fal
-                rajzolo.drawLine(new TerminalPosition(140, 10), new TerminalPosition(140, 40), '█');
+                rajzolo.drawLine(new TerminalPosition(40,10), new TerminalPosition(140, 10), '█'); //Teteje
+                rajzolo.drawLine(new TerminalPosition(40, 10), new TerminalPosition(40, 40), '█');  //Bal oldala
+                rajzolo.drawLine(new TerminalPosition(40, 40), new TerminalPosition(140, 40), '█'); //Alja
+                rajzolo.drawLine(new TerminalPosition(140, 10), new TerminalPosition(140, 40), '█'); //Jobb oldala
 
-                //Boss
+                //Boss rajzolása
                 rajzolo.setForegroundColor(TextColor.ANSI.GREEN);
                 for (int i = 0; i < shroomBoss.length; i++) {
                     rajzolo.putString(new TerminalPosition(bossX, bossY + i), shroomBoss[i]);
+                }
+
+                //kisGomba rajzolása
+                long kisGombaJelenlegiIdo = System.currentTimeMillis();
+                if (kisGombaJelenlegiIdo - utolsoGombaTeleportalasIdeje >= 4500) {
+                    boolean ujHelyMegvan = false;
+
+                    while (!ujHelyMegvan) {
+                        kisGombaX = arenaBal + (int) (Math.random() * (arenaJobb - arenaBal));
+                        kisGombaY = arenaFent + (int) (Math.random() * (arenaLent - arenaFent));
+
+                        kisBal = kisGombaX;
+                        kisJobb = kisGombaX + 2;
+                        kisFent = kisGombaY;
+                        kisLent = kisGombaY + 1;
+
+                        boolean utkozikBossal = kisJobb >= bossBal && kisBal <= bossJobb && kisLent >= bossFent && kisFent <= bossLent;
+
+                        if (!utkozikBossal) {
+                            ujHelyMegvan = true;
+                        }
+
+                        utolsoGombaTeleportalasIdeje = kisGombaJelenlegiIdo;
+                    }
                 }
                 rajzolo.setForegroundColor(TextColor.ANSI.GREEN_BRIGHT);
                 rajzolo.putString(new TerminalPosition(kisGombaX, kisGombaY), "███");
                 rajzolo.putString(new TerminalPosition(kisGombaX, kisGombaY + 1), "███");
 
-
-                
-                //karakter
+                //Player és HP rajzolása
                 rajzolo.setForegroundColor(TextColor.ANSI.GREEN);
                 rajzolo.putString(new TerminalPosition(40, 8), "Élet: " + playerHP + " HP");
                 rajzolo.setForegroundColor(TextColor.ANSI.MAGENTA_BRIGHT);
@@ -132,16 +136,15 @@ public class Main {
 
                 kepernyo.refresh();
 
-
-                //Karakter mozgás
+                //Mozgás
                 KeyStroke gombnyomas = kepernyo.pollInput();
                 KeyStroke utolsoGomb = null;
 
+                //Mozgás csúszása ellen
                 while (gombnyomas != null) {
                     utolsoGomb = gombnyomas;
                     gombnyomas = kepernyo.pollInput();
                 }
-
                 if (utolsoGomb != null) {
                     if (utolsoGomb.getKeyType() == KeyType.Escape) {
                         isRunning = false;
@@ -174,28 +177,47 @@ public class Main {
                     }
                 }
 
+                //Ütközés vizsgálata
+                //Player koordinátái
+                int jatekosBal = playerX;
+                int jatekosJobb = playerX + 6;
+                int jatekosFent = playerY;
+                int jatekosLent = playerY;
 
-                //Boss-al való ütközés
-
-
+                //Ütközésnél időzített sebzés
                 if (jatekosJobb >= bossBal && jatekosBal <= bossJobb && jatekosLent >= bossFent && jatekosFent <= bossLent) {
                     long jelenlegiIdo = System.currentTimeMillis();
-                    if (jelenlegiIdo - utolsoSebzesIdeje >= 1500) {
+                    if (jelenlegiIdo - utolsoGombaSebzes >= 1500) {
                         playerHP -= 5;
-                        if (playerHP < 0) playerHP = 0;
-                        utolsoSebzesIdeje = jelenlegiIdo;
+                        if (playerHP < 0) {
+                            playerHP = 0;
+                        }
+                        utolsoGombaSebzes = jelenlegiIdo;
+                    }
+                }
+                if (jatekosJobb >= kisBal && jatekosBal <= kisJobb && jatekosLent >= kisFent && jatekosFent <= kisLent) {
+                    long jelenlegiIdo = System.currentTimeMillis();
+                    if (jelenlegiIdo - utolsoKisGombaSebzes
+                            >= 2000) {
+                        playerHP -= 5;
+                        if (playerHP < 0) {
+                            playerHP = 0;
+                        }
+                        utolsoKisGombaSebzes = jelenlegiIdo;
                     }
                 }
 
+                //Processzor kímélése
                 try {
                     Thread.sleep(50);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
 
-
             }
+
             kepernyo.stopScreen();
+
         } catch (IOException e) {
             e.printStackTrace();
         }
