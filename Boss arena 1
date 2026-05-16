@@ -11,11 +11,11 @@ import com.googlecode.lanterna.TerminalSize;
 
 import java.io.IOException;
 
-public class Main {
+public class Boss_Arena_1 {
     public static void main(String[] args) {
 
         try {
-            //Terminál
+            //Terminál beállítása
             DefaultTerminalFactory factory = new DefaultTerminalFactory();
             factory.setInitialTerminalSize(new TerminalSize(180, 50));
             Terminal ablak = factory.createTerminalEmulator();
@@ -23,18 +23,26 @@ public class Main {
             kepernyo.startScreen();
             kepernyo.setCursorPosition(null);
 
-
-            //Karakter adatai
+            //Player adatai
             int playerX = 90;
             int playerY = 35;
-            String karakter = "(<*-*)<";
-            int playerHP = 100;
             boolean isRunning = true;
+            int playerHP = 100;
 
+            String[] player = {
+                    " [*] ",
+                    "/[█]\\",
+                    "/   \\"
+            };
 
             //Boss adatai
             int bossHP = 100;
             boolean bossHalott = false;
+
+            //Stopperórák
+            long utolsoGombaSebzes = 0;
+            long utolsoKisGombaSebzes = 0;
+
             int bossX = 85;
             int bossY = 20;
             String[] shroomBoss = {
@@ -46,19 +54,12 @@ public class Main {
                     "    |_____|    "
             };
 
-
-            //Stopperórák
-            long utolsoGombaSebzes = 0;
-            long utolsoKisGombaSebzes = 0;
-
-
             //Arena határai
             int arenaBal = 41;
             int arenaJobb = 137;
             int arenaFent = 11;
             int arenaLent = 38;
 
-            //Boss határai
             int bossBal = bossX;
             int bossJobb = bossX + 14;
             int bossFent = bossY;
@@ -86,31 +87,25 @@ public class Main {
             }
             long utolsoGombaTeleportalasIdeje = System.currentTimeMillis();
 
-
-
             //Fő ciklus
             while (isRunning) {
                 kepernyo.clear();
                 TextGraphics rajzolo = kepernyo.newTextGraphics();
 
-
                 //Aréna és Folyosó rajzolása
                 rajzolo.setForegroundColor(TextColor.ANSI.WHITE);
-                rajzolo.drawLine(new TerminalPosition(40,10), new TerminalPosition(140, 10), '█'); //Teteje
-                rajzolo.drawLine(new TerminalPosition(40, 10), new TerminalPosition(40, 40), '█');  //Bal oldala
-                rajzolo.drawLine(new TerminalPosition(140, 10), new TerminalPosition(140, 40), '█'); //Jobb oldala
+                rajzolo.drawLine(new TerminalPosition(40,10), new TerminalPosition(140, 10), '█'); // Teteje
+                rajzolo.drawLine(new TerminalPosition(40, 10), new TerminalPosition(40, 40), '█');  // Bal oldala
+                rajzolo.drawLine(new TerminalPosition(140, 10), new TerminalPosition(140, 40), '█'); // Jobb oldala
 
                 if (!bossHalott) {
-                    //Zárt alj
                     rajzolo.drawLine(new TerminalPosition(40, 40), new TerminalPosition(140, 40), '█');
                 } else {
-                    //Kinyílt alj
-                    rajzolo.drawLine(new TerminalPosition(40, 40), new TerminalPosition(84, 40), '█'); //Bal alsó fal
-                    rajzolo.drawLine(new TerminalPosition(100, 40), new TerminalPosition(140, 40), '█'); //Jobb alsó fal
+                    rajzolo.drawLine(new TerminalPosition(40, 40), new TerminalPosition(84, 40), '█'); // Bal alsó fal
+                    rajzolo.drawLine(new TerminalPosition(100, 40), new TerminalPosition(140, 40), '█'); // Jobb alsó fal
 
-                    //Folyosó falai lefelé
-                    rajzolo.drawLine(new TerminalPosition(84, 41), new TerminalPosition(84, 49), '█'); //Folyosó bal fala
-                    rajzolo.drawLine(new TerminalPosition(100, 41), new TerminalPosition(100, 49), '█'); //Folyosó jobb fala
+                    rajzolo.drawLine(new TerminalPosition(84, 41), new TerminalPosition(84, 49), '█'); // Folyosó bal fala
+                    rajzolo.drawLine(new TerminalPosition(100, 41), new TerminalPosition(100, 49), '█'); // Folyosó jobb fala
                 }
 
 
@@ -142,20 +137,24 @@ public class Main {
                     rajzolo.setForegroundColor(TextColor.ANSI.GREEN_BRIGHT);
                     rajzolo.putString(new TerminalPosition(kisGombaX, kisGombaY), "███");
                     rajzolo.putString(new TerminalPosition(kisGombaX, kisGombaY + 1), "███");
-                }
-                //Boss HP kiírása
-                rajzolo.setForegroundColor(TextColor.ANSI.RED);
-                rajzolo.putString(new TerminalPosition(120, 8), "Boss: " + bossHP + " HP");
 
-                //Player és HP rajzolása
+                    //Boss HP kiírása
+                    rajzolo.setForegroundColor(TextColor.ANSI.RED);
+                    rajzolo.putString(new TerminalPosition(120, 8), "Boss: " + bossHP + " HP");
+                }
+
+                //Játékos és HP rajzolása
                 rajzolo.setForegroundColor(TextColor.ANSI.GREEN);
                 rajzolo.putString(new TerminalPosition(40, 8), "Élet: " + playerHP + " HP");
+
                 rajzolo.setForegroundColor(TextColor.ANSI.MAGENTA_BRIGHT);
-                rajzolo.putString(new TerminalPosition(playerX, playerY), karakter);
+                for (int i = 0; i < player.length; i++) {
+                    rajzolo.putString(new TerminalPosition(playerX, playerY + i), player[i]);
+                }
 
                 kepernyo.refresh();
 
-                // 3. Mozgás
+                //Mozgás
                 KeyStroke gombnyomas = kepernyo.pollInput();
                 KeyStroke utolsoGomb = null;
 
@@ -175,70 +174,63 @@ public class Main {
                                 break;
                             case 's':
                                 if (!bossHalott) {
-                                    // Zárt aréna
-                                    if (playerY < 39) playerY++;
+                                    if (playerY < 37) {
+                                        playerY++;
+                                    }
                                 } else {
-                                    // Ha a kapu nyitva van
-                                    if (playerX >= 85 && playerX <= 93) {
-                                        // A folyosón mehetünk teljesen le
-                                        if (playerY < 49) playerY++;
-                                    } else {
-                                        // Nem a kapuban állunk
-                                        if (playerY < 39) playerY++;
+                                    if (playerY < 37) {
+                                        playerY++;
+                                    } else if (playerY >= 37 && playerY < 47) {
+                                        if (playerX >= 85 && playerX <= 95) {
+                                            playerY++;
+                                        }
                                     }
                                 }
                                 break;
                             case 'a':
-                                if (playerY < 40) {
-                                    // Arénában
+                                if (playerY < 38) {
                                     if (playerX > 41) playerX--;
                                 } else {
-                                    // Folyosón
                                     if (playerX > 85) playerX--;
                                 }
-                                karakter = ">(*-*>)";
                                 break;
                             case 'd':
-                                if (playerY < 40) {
-                                    // Arénában
-                                    if (playerX < 133) playerX++;
+                                if (playerY < 38) {
+                                    if (playerX < 135) playerX++;
                                 } else {
-                                    // Folyosón
-                                    if (playerX < 93) playerX++;
+                                    if (playerX < 95) playerX++;
                                 }
-                                karakter = "(<*-*)<";
                                 break;
                         }
                     }
                 }
 
-                // 4. Ütközés vizsgálata (Csak ha a Boss él)
+                //Ütközés vizsgálata
                 if (!bossHalott) {
                     int jatekosBal = playerX;
-                    int jatekosJobb = playerX + 6;
+                    int jatekosJobb = playerX + 4;
                     int jatekosFent = playerY;
-                    int jatekosLent = playerY;
+                    int jatekosLent = playerY + 2;
 
-                    // Boss kamikaze sebzés
                     if (jatekosJobb >= bossBal && jatekosBal <= bossJobb && jatekosLent >= bossFent && jatekosFent <= bossLent) {
                         long jelenlegiIdo = System.currentTimeMillis();
                         if (jelenlegiIdo - utolsoGombaSebzes >= 1500) {
 
                             playerHP -= 5;
-                            bossHP -= 20; // Te is sebzed a Boss-t!
+                            bossHP -= 20;
 
                             if (playerHP < 0) playerHP = 0;
 
                             if (bossHP <= 0) {
                                 bossHP = 0;
-                                bossHalott = true; // Meghalt, kinyílik a kapu!
+                                bossHalott = true;
                             }
 
                             utolsoGombaSebzes = jelenlegiIdo;
                         }
                     }
 
-                    // Kis gomba sebzés
+                    //kisGomba sebzés
                     if (jatekosJobb >= kisBal && jatekosBal <= kisJobb && jatekosLent >= kisFent && jatekosFent <= kisLent) {
                         long jelenlegiIdo = System.currentTimeMillis();
                         if (jelenlegiIdo - utolsoKisGombaSebzes >= 2000) {
@@ -249,6 +241,7 @@ public class Main {
                     }
                 }
 
+                //Processzor kímélése
                 try {
                     Thread.sleep(50);
                 } catch (InterruptedException e) {
