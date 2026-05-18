@@ -1,0 +1,16 @@
+[PÁNCÉL]
+nincs = 0
+
+[PÁNCÉL VÉDETTSÉG]
+
+[FEGYVER]
+fist = 10
+wooden sword = 25
+long sword = 50
+
+[FEGYVER KÉPESSÉG]
+
+[KARAKTER]
+equipped_Weapon = fist
+charakter_hp = 30
+equipped_Armor = nincs
