@@ -15,7 +15,7 @@ public class Boss_Arena_1 {
     public static void main(String[] args) {
 
         try {
-            //Terminál beállítása
+            //Terminál
             DefaultTerminalFactory factory = new DefaultTerminalFactory();
             factory.setInitialTerminalSize(new TerminalSize(180, 50));
             Terminal ablak = factory.createTerminalEmulator();
@@ -23,28 +23,23 @@ public class Boss_Arena_1 {
             kepernyo.startScreen();
             kepernyo.setCursorPosition(null);
 
-            //Player adatai
+
+            //Karakter adatai
             int playerX = 90;
             int playerY = 35;
-            boolean isRunning = true;
+            String karakter = "(<*-*)<";
             int playerHP = 100;
+            boolean isRunning = true;
 
-            String[] player = {
-                    " [*] ",
-                    "/[█]\\",
-                    "/   \\"
-            };
 
             //Boss adatai
             int bossHP = 100;
             boolean bossHalott = false;
-
-            //Stopperórák
-            long utolsoGombaSebzes = 0;
-            long utolsoKisGombaSebzes = 0;
-
             int bossX = 85;
             int bossY = 20;
+            String kopet = "( )";
+            int kopetX = 90;
+            int kopetY = 21;
             String[] shroomBoss = {
                     "    .......    ",
                     "  .'   o   '.  ",
@@ -53,6 +48,12 @@ public class Boss_Arena_1 {
                     "    | O_O |    ",
                     "    |_____|    "
             };
+            long kopetekKozottiIdo = 0;
+            boolean kopetEl = true;
+            long kopetKopese = 0;
+            long utolsoGombaSebzes = 0;
+            long utolsoKisGombaSebzes = 0;
+
 
             //Arena határai
             int arenaBal = 41;
@@ -60,6 +61,7 @@ public class Boss_Arena_1 {
             int arenaFent = 11;
             int arenaLent = 38;
 
+            //Boss határai
             int bossBal = bossX;
             int bossJobb = bossX + 14;
             int bossFent = bossY;
@@ -87,25 +89,31 @@ public class Boss_Arena_1 {
             }
             long utolsoGombaTeleportalasIdeje = System.currentTimeMillis();
 
+
+
             //Fő ciklus
             while (isRunning) {
                 kepernyo.clear();
                 TextGraphics rajzolo = kepernyo.newTextGraphics();
 
+
                 //Aréna és Folyosó rajzolása
                 rajzolo.setForegroundColor(TextColor.ANSI.WHITE);
-                rajzolo.drawLine(new TerminalPosition(40,10), new TerminalPosition(140, 10), '█'); // Teteje
-                rajzolo.drawLine(new TerminalPosition(40, 10), new TerminalPosition(40, 40), '█');  // Bal oldala
-                rajzolo.drawLine(new TerminalPosition(140, 10), new TerminalPosition(140, 40), '█'); // Jobb oldala
+                rajzolo.drawLine(new TerminalPosition(40,10), new TerminalPosition(140, 10), '█'); //Teteje
+                rajzolo.drawLine(new TerminalPosition(40, 10), new TerminalPosition(40, 40), '█');  //Bal oldala
+                rajzolo.drawLine(new TerminalPosition(140, 10), new TerminalPosition(140, 40), '█'); //Jobb oldala
 
                 if (!bossHalott) {
+                    //Zárt alj
                     rajzolo.drawLine(new TerminalPosition(40, 40), new TerminalPosition(140, 40), '█');
                 } else {
-                    rajzolo.drawLine(new TerminalPosition(40, 40), new TerminalPosition(84, 40), '█'); // Bal alsó fal
-                    rajzolo.drawLine(new TerminalPosition(100, 40), new TerminalPosition(140, 40), '█'); // Jobb alsó fal
+                    //Kinyílt alj
+                    rajzolo.drawLine(new TerminalPosition(40, 40), new TerminalPosition(84, 40), '█'); //Bal alsó fal
+                    rajzolo.drawLine(new TerminalPosition(100, 40), new TerminalPosition(140, 40), '█'); //Jobb alsó fal
 
-                    rajzolo.drawLine(new TerminalPosition(84, 41), new TerminalPosition(84, 49), '█'); // Folyosó bal fala
-                    rajzolo.drawLine(new TerminalPosition(100, 41), new TerminalPosition(100, 49), '█'); // Folyosó jobb fala
+                    //Folyosó falai lefelé
+                    rajzolo.drawLine(new TerminalPosition(84, 41), new TerminalPosition(84, 49), '█'); //Folyosó bal fala
+                    rajzolo.drawLine(new TerminalPosition(100, 41), new TerminalPosition(100, 49), '█'); //Folyosó jobb fala
                 }
 
 
@@ -117,8 +125,8 @@ public class Boss_Arena_1 {
                     }
 
                     //kisGomba teleportálása és rajzolása
-                    long kisGombaJelenlegiIdo = System.currentTimeMillis();
-                    if (kisGombaJelenlegiIdo - utolsoGombaTeleportalasIdeje >= 4500) {
+                    long jelenlegiIdo = System.currentTimeMillis();
+                    if (jelenlegiIdo - utolsoGombaTeleportalasIdeje >= 4500) {
                         boolean ujHelyMegvan = false;
                         while (!ujHelyMegvan) {
                             kisGombaX = arenaBal + (int)(Math.random() * (arenaJobb - arenaBal));
@@ -132,29 +140,41 @@ public class Boss_Arena_1 {
                                 ujHelyMegvan = true;
                             }
                         }
-                        utolsoGombaTeleportalasIdeje = kisGombaJelenlegiIdo;
+                        utolsoGombaTeleportalasIdeje = jelenlegiIdo;
                     }
                     rajzolo.setForegroundColor(TextColor.ANSI.GREEN_BRIGHT);
                     rajzolo.putString(new TerminalPosition(kisGombaX, kisGombaY), "███");
                     rajzolo.putString(new TerminalPosition(kisGombaX, kisGombaY + 1), "███");
 
-                    //Boss HP kiírása
-                    rajzolo.setForegroundColor(TextColor.ANSI.RED);
-                    rajzolo.putString(new TerminalPosition(120, 8), "Boss: " + bossHP + " HP");
-                }
+                    if (kopetEl) {
+                        rajzolo.setForegroundColor(TextColor.ANSI.BLUE_BRIGHT);
+                        if (jelenlegiIdo - kopetekKozottiIdo > 300) {
+                            rajzolo.putString(new TerminalPosition(kopetX, kopetY), kopet);
+                            if (jelenlegiIdo - kopetKopese >= 100) {
+                                kopetY++;
 
-                //Játékos és HP rajzolása
+                                kopetKopese = jelenlegiIdo;
+                                kopetekKozottiIdo = jelenlegiIdo;
+                            }
+                            if (kopetY > 49) {
+                                kopetEl = false;
+                            }
+                        }
+                    }
+                }
+                //Boss HP kiírása
+                rajzolo.setForegroundColor(TextColor.ANSI.RED);
+                rajzolo.putString(new TerminalPosition(120, 8), "Boss: " + bossHP + " HP");
+
+                //Player és HP rajzolása
                 rajzolo.setForegroundColor(TextColor.ANSI.GREEN);
                 rajzolo.putString(new TerminalPosition(40, 8), "Élet: " + playerHP + " HP");
-
                 rajzolo.setForegroundColor(TextColor.ANSI.MAGENTA_BRIGHT);
-                for (int i = 0; i < player.length; i++) {
-                    rajzolo.putString(new TerminalPosition(playerX, playerY + i), player[i]);
-                }
+                rajzolo.putString(new TerminalPosition(playerX, playerY), karakter);
 
                 kepernyo.refresh();
 
-                //Mozgás
+                // 3. Mozgás
                 KeyStroke gombnyomas = kepernyo.pollInput();
                 KeyStroke utolsoGomb = null;
 
@@ -174,63 +194,70 @@ public class Boss_Arena_1 {
                                 break;
                             case 's':
                                 if (!bossHalott) {
-                                    if (playerY < 37) {
-                                        playerY++;
-                                    }
+                                    // Zárt aréna
+                                    if (playerY < 39) playerY++;
                                 } else {
-                                    if (playerY < 37) {
-                                        playerY++;
-                                    } else if (playerY >= 37 && playerY < 47) {
-                                        if (playerX >= 85 && playerX <= 95) {
-                                            playerY++;
-                                        }
+                                    // Ha a kapu nyitva van
+                                    if (playerX >= 85 && playerX <= 93) {
+                                        // A folyosón mehetünk teljesen le
+                                        if (playerY < 49) playerY++;
+                                    } else {
+                                        // Nem a kapuban állunk
+                                        if (playerY < 39) playerY++;
                                     }
                                 }
                                 break;
                             case 'a':
-                                if (playerY < 38) {
+                                if (playerY < 40) {
+                                    // Arénában
                                     if (playerX > 41) playerX--;
                                 } else {
+                                    // Folyosón
                                     if (playerX > 85) playerX--;
                                 }
+                                karakter = ">(*-*>)";
                                 break;
                             case 'd':
-                                if (playerY < 38) {
-                                    if (playerX < 135) playerX++;
+                                if (playerY < 40) {
+                                    // Arénában
+                                    if (playerX < 133) playerX++;
                                 } else {
-                                    if (playerX < 95) playerX++;
+                                    // Folyosón
+                                    if (playerX < 93) playerX++;
                                 }
+                                karakter = "(<*-*)<";
                                 break;
                         }
                     }
                 }
 
-                //Ütközés vizsgálata
+                // 4. Ütközés vizsgálata (Csak ha a Boss él)
                 if (!bossHalott) {
                     int jatekosBal = playerX;
-                    int jatekosJobb = playerX + 4;
+                    int jatekosJobb = playerX + 6;
                     int jatekosFent = playerY;
-                    int jatekosLent = playerY + 2;
+                    int jatekosLent = playerY;
 
+                    // Boss kamikaze sebzés
                     if (jatekosJobb >= bossBal && jatekosBal <= bossJobb && jatekosLent >= bossFent && jatekosFent <= bossLent) {
                         long jelenlegiIdo = System.currentTimeMillis();
                         if (jelenlegiIdo - utolsoGombaSebzes >= 1500) {
 
                             playerHP -= 5;
-                            bossHP -= 20;
+                            bossHP -= 20; // Te is sebzed a Boss-t!
 
                             if (playerHP < 0) playerHP = 0;
 
                             if (bossHP <= 0) {
                                 bossHP = 0;
-                                bossHalott = true;
+                                bossHalott = true; // Meghalt, kinyílik a kapu!
                             }
 
                             utolsoGombaSebzes = jelenlegiIdo;
                         }
                     }
 
-                    //kisGomba sebzés
+                    // Kis gomba sebzés
                     if (jatekosJobb >= kisBal && jatekosBal <= kisJobb && jatekosLent >= kisFent && jatekosFent <= kisLent) {
                         long jelenlegiIdo = System.currentTimeMillis();
                         if (jelenlegiIdo - utolsoKisGombaSebzes >= 2000) {
@@ -241,7 +268,6 @@ public class Boss_Arena_1 {
                     }
                 }
 
-                //Processzor kímélése
                 try {
                     Thread.sleep(50);
                 } catch (InterruptedException e) {
