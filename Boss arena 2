@@ -12,7 +12,12 @@ import com.googlecode.lanterna.TerminalSize;
 import java.io.IOException;
 
 public class Boss_Arena_2 {
+    
     public static void main(String[] args) {
+        startBossFight();
+    }
+    
+    public static void startBossFight() {
         try {
 
             //Terminál
@@ -24,19 +29,15 @@ public class Boss_Arena_2 {
             kepernyo.setCursorPosition(null);
 
 
-            //karakter adatai
+            //Karakter adatai
             int playerHP = 100;
             int playerX = 88;
             int playerY = 35;
-            String[] sentinelXMan = {
-                    " [*] ",
-                    "/[█]\\",
-                    "/   \\"
-            };
+            String player = "(<*-*)<";
             boolean isRunning = true;
 
 
-            //Boss
+            //Boss adatai
             int bossHP = 100;
             int bossX = 81;
             int bossY = 19;
@@ -52,19 +53,34 @@ public class Boss_Arena_2 {
                     "       _| |_       "
             };
             long utolsoWizardSebzes = 0;
+            boolean bossHalott = false;
+
+            // Boss lövedék adatai
+            boolean lovedekAktiv = false;
+            int lovedekX = 0;
+            int lovedekY = 0;
+            int lovedekIrany = 0;
+            long utolsoLovedekIdo = 0;
+
+
+            // Könyvek adatai
             int book1X = 68;
             int book1Y = 22;
             int book2X = 105;
             int book2Y = 22;
             String[] wizardBook = {
-                    "   /\\  ",
-                    "   \\/  ",
-                    " [====]",
-                    "  ~~~~ "
+                    "[====]",
+                    " ~~~~ "
             };
-            long utolsoBookSebzes1 = 0;
+            String[] wizardCrystalLightning = {
+                    "  ϟ      ϟ  ",
+                    "   ϟ    ϟ   ",
+                    " ϟ        ϟ ",
+                    "            "
+            };
             long utolsoBookSebzes2 = 0;
-            boolean bossHalott = false;
+            long konyvbeLepesIdeje = 0;
+            boolean elozoKonyvbenVan = false;
 
 
             //Fő ciklus
@@ -72,6 +88,11 @@ public class Boss_Arena_2 {
                 kepernyo.clear();
                 TextGraphics rajzolo = kepernyo.newTextGraphics();
 
+                //Player határok
+                int playerBal = playerX;
+                int playerJobb = playerX + 6;
+                int playerFent = playerY;
+                int playerLent = playerY;
 
                 //Aréna
                 rajzolo.setForegroundColor(TextColor.ANSI.WHITE);
@@ -88,29 +109,103 @@ public class Boss_Arena_2 {
                     rajzolo.drawLine(new TerminalPosition(100, 41), new TerminalPosition(100, 49), '█');
                 }
 
+                //Boss, lövedék és könyvek kiírása
+                boolean mutatVillamot = false;
 
-                //Boss kiírása
                 if (!bossHalott) {
                     rajzolo.setForegroundColor(TextColor.ANSI.GREEN);
                     for (int i = 0; i < wizadBoss.length; i++) {
                         rajzolo.putString(new TerminalPosition(bossX, bossY + i), wizadBoss[i]);
                     }
                     for (int i = 0; i < wizardBook.length; i++) {
-                        rajzolo.putString(new TerminalPosition(book1X, book1Y + i), wizardBook[i]);
+                        rajzolo.putString(new TerminalPosition(book1X, book1Y + 2 + i), wizardBook[i]);
                     }
                     for (int i = 0; i < wizardBook.length; i++) {
-                        rajzolo.putString(new TerminalPosition(book2X, book2Y + i), wizardBook[i]);
+                        rajzolo.putString(new TerminalPosition(book2X + 2, book2Y + 2 + i), wizardBook[i]);
                     }
                     rajzolo.setForegroundColor(TextColor.ANSI.RED);
                     rajzolo.putString(new TerminalPosition(120, 8), "Boss élet: " + bossHP + " HP");
-                }
 
+                    //Boss lövedék vizsgálata és indítása
+                    if (!lovedekAktiv) {
+                        if (playerJobb >= bossX && playerBal <= bossX + 18) {
+                            long jelenlegiIdo = System.currentTimeMillis();
+                            if (jelenlegiIdo - utolsoLovedekIdo > 2000) {
+                                lovedekX = bossX + (int)(Math.random() * 19);
+
+                                if (playerY < bossY) { //Player felül
+                                    lovedekY = bossY - 1;
+                                    lovedekIrany = -1;
+                                    lovedekAktiv = true;
+                                    utolsoLovedekIdo = jelenlegiIdo;
+                                } else if (playerY > bossY + 8) { //Player alul
+                                    lovedekY = bossY + 9;
+                                    lovedekIrany = 1;
+                                    lovedekAktiv = true;
+                                    utolsoLovedekIdo = jelenlegiIdo;
+                                }
+                            }
+                        }
+                    }
+
+                    //Lövedék rajzolása
+                    if (lovedekAktiv) {
+                        lovedekY += lovedekIrany;
+
+                        //Ütközés aréna falával
+                        if (lovedekY <= 10 || lovedekY >= 40) {
+                            lovedekAktiv = false;
+                        } else {
+                            rajzolo.setForegroundColor(TextColor.ANSI.YELLOW_BRIGHT);
+                            rajzolo.putString(new TerminalPosition(lovedekX, lovedekY), "o");
+
+                            //Ütközés játékossal
+                            if (lovedekY == playerY && lovedekX >= playerBal && lovedekX <= playerJobb) {
+                                playerHP -= 10;
+                                if (playerHP < 0) playerHP = 0;
+                                lovedekAktiv = false;
+                            }
+                        }
+                    }
+
+                    //Könyvek határai
+                    int book1Bal = book1X;
+                    int book1Jobb = book1X + 5;
+                    int book1Fent = book1Y + 2;
+                    int book1Lent = book1Y + 3;
+
+                    int book2Bal = book2X + 2;
+                    int book2Jobb = book2X + 7;
+                    int book2Fent = book2Y + 2;
+                    int book2Lent = book2Y + 3;
+                    
+                    boolean konyvbenVan1 = (playerBal <= book1Jobb && playerJobb >= book1Bal && playerFent <= book1Lent && playerLent >= book1Fent);
+                    boolean konyvbenVan2 = (playerBal <= book2Jobb && playerJobb >= book2Bal && playerFent <= book2Lent && playerLent >= book2Fent);
+                    boolean mostKonyvbenVan = konyvbenVan1 || konyvbenVan2;
+                    
+                    if (mostKonyvbenVan && !elozoKonyvbenVan) {
+                        konyvbeLepesIdeje = System.currentTimeMillis();
+                        elozoKonyvbenVan = true;
+                    } else if (!mostKonyvbenVan) {
+                        elozoKonyvbenVan = false;
+                    }
+                    
+                    mutatVillamot = mostKonyvbenVan && (System.currentTimeMillis() - konyvbeLepesIdeje >= 1500);
+
+                    //Villámok
+                    if (mutatVillamot) {
+                        rajzolo.setForegroundColor(TextColor.ANSI.CYAN);
+                        for (int i = 0; i < wizardCrystalLightning.length; i++) {
+                            rajzolo.putString(new TerminalPosition(book1X - 3, book1Y - 2 + i), wizardCrystalLightning[i]);
+                            rajzolo.putString(new TerminalPosition(book2X - 1, book2Y - 2 + i), wizardCrystalLightning[i]);
+                        }
+                    }
+                }
 
                 //Player kiírása
                 rajzolo.setForegroundColor(TextColor.ANSI.MAGENTA_BRIGHT);
-                for (int i = 0; i < sentinelXMan.length; i++) {
-                    rajzolo.putString(new TerminalPosition(playerX, playerY + i), sentinelXMan[i]);
-                }
+                rajzolo.putString(new TerminalPosition(playerX, playerY), player);
+
                 rajzolo.setForegroundColor(TextColor.ANSI.GREEN_BRIGHT);
                 rajzolo.putString(new TerminalPosition(40, 8), "Élet: " + playerHP + " HP");
 
@@ -150,6 +245,7 @@ public class Boss_Arena_2 {
                                 }
                                 break;
                             case 'a':
+                                player = ">(*-*>)";
                                 if (playerY <= 37) {
                                     if (playerX > 41) {
                                         playerX--;
@@ -161,12 +257,13 @@ public class Boss_Arena_2 {
                                 }
                                 break;
                             case 'd':
+                                player = "(<*-*)<";
                                 if (playerY <= 37) {
-                                    if (playerX < 135) {
+                                    if (playerX < 133) {
                                         playerX++;
                                     }
                                 } else {
-                                    if (playerX < 95) {
+                                    if (playerX < 93) {
                                         playerX++;
                                     }
                                 }
@@ -174,14 +271,9 @@ public class Boss_Arena_2 {
                         }
                     }
                 }
-
-                //Ütközés vizsgálata
+                
                 if (!bossHalott) {
-                    int playerBal = playerX;
-                    int playerJobb = playerX + 4;
-                    int playerFent = playerY + 2;
-                    int playerLent = playerY;
-
+                    //Boss ütközés
                     int bossBal = bossX;
                     int bossJobb = bossX + 18;
                     int bossFent = bossY;
@@ -200,6 +292,18 @@ public class Boss_Arena_2 {
                                 bossHalott = true;
                             }
                             utolsoWizardSebzes = jelenlegiIdo;
+                        }
+                    }
+
+                    //Villám sebzés
+                    if (mutatVillamot) {
+                        long jelenlegiIdo = System.currentTimeMillis();
+                        if (jelenlegiIdo - utolsoBookSebzes2 >= 2000) { // 2000 ms = 2 másodperc
+                            playerHP -= 5;
+                            if (playerHP < 0) {
+                                playerHP = 0;
+                            }
+                            utolsoBookSebzes2 = jelenlegiIdo;
                         }
                     }
                 }
