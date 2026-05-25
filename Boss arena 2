@@ -12,14 +12,16 @@ import com.googlecode.lanterna.TerminalSize;
 import java.io.IOException;
 
 public class Boss_Arena_2 {
-    
-    public static void main(String[] args) {
-        startBossFight();
-    }
-    
-    public static void startBossFight() {
-        try {
 
+    public static void main(String[] args) {
+        boolean gyozelem = startBossFight();
+    }
+
+    public static boolean startBossFight() {
+        boolean nyertel = false;
+
+        try {
+            
             //Terminál
             DefaultTerminalFactory factory = new DefaultTerminalFactory();
             factory.setInitialTerminalSize(new TerminalSize(180, 50));
@@ -55,7 +57,7 @@ public class Boss_Arena_2 {
             long utolsoWizardSebzes = 0;
             boolean bossHalott = false;
 
-            // Boss lövedék adatai
+            //Boss lövedék adatai
             boolean lovedekAktiv = false;
             int lovedekX = 0;
             int lovedekY = 0;
@@ -63,7 +65,7 @@ public class Boss_Arena_2 {
             long utolsoLovedekIdo = 0;
 
 
-            // Könyvek adatai
+            //Könyvek adatai
             int book1X = 68;
             int book1Y = 22;
             int book2X = 105;
@@ -82,6 +84,9 @@ public class Boss_Arena_2 {
             long konyvbeLepesIdeje = 0;
             boolean elozoKonyvbenVan = false;
 
+            //Támadás
+            long utolsoFTamadas = 0;
+
 
             //Fő ciklus
             while (isRunning) {
@@ -94,20 +99,33 @@ public class Boss_Arena_2 {
                 int playerFent = playerY;
                 int playerLent = playerY;
 
+                //Távolság kiszámítása a Boss-tól (F támadáshoz)
+                int gapX = Math.max(0, Math.max(bossX - playerJobb, playerBal - (bossX + 18)));
+                int gapY = Math.max(0, Math.max(bossY - playerLent, playerFent - (bossY + 8)));
+                boolean kozelVanABosshoz = (gapX <= 2 && gapY <= 2);
+
                 //Aréna
                 rajzolo.setForegroundColor(TextColor.ANSI.WHITE);
                 rajzolo.drawLine(new TerminalPosition(40, 10), new TerminalPosition(140, 10), '█');//Fent
                 rajzolo.drawLine(new TerminalPosition(40, 10), new TerminalPosition(40, 40), '█');//Bal
                 rajzolo.drawLine(new TerminalPosition(140, 10), new TerminalPosition(140, 40), '█');
-                //Aréna alja
-                if (!bossHalott) {
-                    rajzolo.drawLine(new TerminalPosition(40, 40), new TerminalPosition(140, 40), '█');
+                rajzolo.drawLine(new TerminalPosition(40, 40), new TerminalPosition(140, 40), '█');
+
+                //F Támadás kijelzése
+                long jelenlegiIdoKijelzeshez = System.currentTimeMillis();
+                long elteltF = jelenlegiIdoKijelzeshez - utolsoFTamadas;
+
+                if (elteltF < 1000) {
+                    rajzolo.setForegroundColor(TextColor.ANSI.RED);
+                    rajzolo.putString(new TerminalPosition(85, 8), "[ F ]");
+                } else if (kozelVanABosshoz) {
+                    rajzolo.setForegroundColor(TextColor.ANSI.GREEN_BRIGHT);
+                    rajzolo.putString(new TerminalPosition(85, 8), "[ F ]");
                 } else {
-                    rajzolo.drawLine(new TerminalPosition(40, 40), new TerminalPosition(84, 40), '█');
-                    rajzolo.drawLine(new TerminalPosition(100, 40), new TerminalPosition(140, 40), '█');
-                    rajzolo.drawLine(new TerminalPosition(84, 41), new TerminalPosition(84, 49), '█');
-                    rajzolo.drawLine(new TerminalPosition(100, 41), new TerminalPosition(100, 49), '█');
+                    rajzolo.setForegroundColor(TextColor.ANSI.WHITE);
+                    rajzolo.putString(new TerminalPosition(85, 8), "F támadás: Túl messze vagy");
                 }
+
 
                 //Boss, lövedék és könyvek kiírása
                 boolean mutatVillamot = false;
@@ -129,40 +147,40 @@ public class Boss_Arena_2 {
                     //Boss lövedék vizsgálata és indítása
                     if (!lovedekAktiv) {
                         if (playerJobb >= bossX && playerBal <= bossX + 18) {
-                            long jelenlegiIdo = System.currentTimeMillis();
-                            if (jelenlegiIdo - utolsoLovedekIdo > 2000) {
+                            if (jelenlegiIdoKijelzeshez - utolsoLovedekIdo > 2000) {
                                 lovedekX = bossX + (int)(Math.random() * 19);
 
-                                if (playerY < bossY) { //Player felül
+                                if (playerY < bossY) {
                                     lovedekY = bossY - 1;
                                     lovedekIrany = -1;
                                     lovedekAktiv = true;
-                                    utolsoLovedekIdo = jelenlegiIdo;
-                                } else if (playerY > bossY + 8) { //Player alul
+                                    utolsoLovedekIdo = jelenlegiIdoKijelzeshez;
+                                } else if (playerY > bossY + 8) {
                                     lovedekY = bossY + 9;
                                     lovedekIrany = 1;
                                     lovedekAktiv = true;
-                                    utolsoLovedekIdo = jelenlegiIdo;
+                                    utolsoLovedekIdo = jelenlegiIdoKijelzeshez;
                                 }
                             }
                         }
                     }
 
-                    //Lövedék rajzolása
+                    //Lövedék mozgatása és rajzolása
                     if (lovedekAktiv) {
                         lovedekY += lovedekIrany;
 
-                        //Ütközés aréna falával
                         if (lovedekY <= 10 || lovedekY >= 40) {
                             lovedekAktiv = false;
                         } else {
                             rajzolo.setForegroundColor(TextColor.ANSI.YELLOW_BRIGHT);
                             rajzolo.putString(new TerminalPosition(lovedekX, lovedekY), "o");
 
-                            //Ütközés játékossal
                             if (lovedekY == playerY && lovedekX >= playerBal && lovedekX <= playerJobb) {
                                 playerHP -= 10;
-                                if (playerHP < 0) playerHP = 0;
+                                if (playerHP <= 0) {
+                                    playerHP = 0;
+                                    isRunning = false;
+                                }
                                 lovedekAktiv = false;
                             }
                         }
@@ -178,21 +196,20 @@ public class Boss_Arena_2 {
                     int book2Jobb = book2X + 7;
                     int book2Fent = book2Y + 2;
                     int book2Lent = book2Y + 3;
-                    
+
                     boolean konyvbenVan1 = (playerBal <= book1Jobb && playerJobb >= book1Bal && playerFent <= book1Lent && playerLent >= book1Fent);
                     boolean konyvbenVan2 = (playerBal <= book2Jobb && playerJobb >= book2Bal && playerFent <= book2Lent && playerLent >= book2Fent);
                     boolean mostKonyvbenVan = konyvbenVan1 || konyvbenVan2;
-                    
+
                     if (mostKonyvbenVan && !elozoKonyvbenVan) {
                         konyvbeLepesIdeje = System.currentTimeMillis();
                         elozoKonyvbenVan = true;
                     } else if (!mostKonyvbenVan) {
                         elozoKonyvbenVan = false;
                     }
-                    
+
                     mutatVillamot = mostKonyvbenVan && (System.currentTimeMillis() - konyvbeLepesIdeje >= 1500);
 
-                    //Villámok
                     if (mutatVillamot) {
                         rajzolo.setForegroundColor(TextColor.ANSI.CYAN);
                         for (int i = 0; i < wizardCrystalLightning.length; i++) {
@@ -211,7 +228,7 @@ public class Boss_Arena_2 {
 
                 kepernyo.refresh();
 
-                //Mozgás
+                //Mozgás és input
                 KeyStroke gombnyomas = kepernyo.pollInput();
                 KeyStroke utolsoGomb = null;
                 while (gombnyomas != null) {
@@ -230,49 +247,43 @@ public class Boss_Arena_2 {
                                 }
                                 break;
                             case 's':
-                                if (!bossHalott) {
-                                    if (playerY < 37) {
-                                        playerY++;
-                                    }
-                                } else {
-                                    if (playerY < 37) {
-                                        playerY++;
-                                    } else if (playerY >= 37 && playerY < 47) {
-                                        if (playerX >= 85 && playerX <= 95) {
-                                            playerY++;
-                                        }
-                                    }
+                                if (playerY < 37) {
+                                    playerY++;
                                 }
                                 break;
                             case 'a':
                                 player = ">(*-*>)";
-                                if (playerY <= 37) {
-                                    if (playerX > 41) {
-                                        playerX--;
-                                    }
-                                } else {
-                                    if (playerX > 85) {
-                                        playerX--;
-                                    }
+                                if (playerX > 41) {
+                                    playerX--;
                                 }
                                 break;
                             case 'd':
                                 player = "(<*-*)<";
-                                if (playerY <= 37) {
-                                    if (playerX < 133) {
-                                        playerX++;
-                                    }
-                                } else {
-                                    if (playerX < 93) {
-                                        playerX++;
+                                if (playerX < 133) {
+                                    playerX++;
+                                }
+                                break;
+                            case 'f':
+                                if (kozelVanABosshoz) {
+                                    long jelenlegiI = System.currentTimeMillis();
+                                    if (jelenlegiI - utolsoFTamadas >= 1000) {
+                                        bossHP -= 10;
+                                        utolsoFTamadas = jelenlegiI;
+                                        if (bossHP <= 0) {
+                                            bossHP = 0;
+                                            bossHalott = true;
+                                            nyertel = true;
+                                            isRunning = false;
+                                        }
                                     }
                                 }
                                 break;
                         }
                     }
                 }
-                
-                if (!bossHalott) {
+
+                //Ütközés vizsgálata
+                if (!bossHalott && isRunning) {
                     //Boss ütközés
                     int bossBal = bossX;
                     int bossJobb = bossX + 18;
@@ -283,25 +294,22 @@ public class Boss_Arena_2 {
                         long jelenlegiIdo = System.currentTimeMillis();
                         if (jelenlegiIdo - utolsoWizardSebzes >= 1500) {
                             playerHP -= 5;
-                            bossHP -= 20;
-                            if (playerHP < 0) {
+                            if (playerHP <= 0) {
                                 playerHP = 0;
-                            }
-                            if (bossHP <= 0) {
-                                bossHP = 0;
-                                bossHalott = true;
+                                isRunning = false;
                             }
                             utolsoWizardSebzes = jelenlegiIdo;
                         }
                     }
 
-                    //Villám sebzés
+                    //Könyv villám sebzés
                     if (mutatVillamot) {
                         long jelenlegiIdo = System.currentTimeMillis();
-                        if (jelenlegiIdo - utolsoBookSebzes2 >= 2000) { // 2000 ms = 2 másodperc
+                        if (jelenlegiIdo - utolsoBookSebzes2 >= 2000) {
                             playerHP -= 5;
-                            if (playerHP < 0) {
+                            if (playerHP <= 0) {
                                 playerHP = 0;
+                                isRunning = false;
                             }
                             utolsoBookSebzes2 = jelenlegiIdo;
                         }
@@ -321,5 +329,7 @@ public class Boss_Arena_2 {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        return nyertel;
     }
 }
