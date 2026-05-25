@@ -6,3 +6,5 @@ Szombat - kisGomba random-hely-teleportás megírása, boss halála esetén kapu
 	Boss Aréna 2-ben az aréna megrajzolása, Boss megrajzolása, a Player kinézetének megváltoztatása, öltetelés a Wizard boss képességeiről - 5óra
 Vasárnap - A wizard boss elkezdése - 1,5ó
 Hétfő - megnézni, és elkezdeni a projectile-okat, órákon - 1,5ó
+Vasárnap - A projectile-ok átnézése majd megírása + a villám megidézése 1,5ó
+Hétfő - Az egész kódot egy void-os függvénybe rakni + Gemiini-től kérni ellenőrzéseket, támadás megírása 1,5ó
