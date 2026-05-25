@@ -1,0 +1,512 @@
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Scanner;
+
+import com.googlecode.lanterna.TerminalPosition;
+import com.googlecode.lanterna.TerminalSize;
+import com.googlecode.lanterna.TextColor;
+import com.googlecode.lanterna.graphics.TextGraphics;
+import com.googlecode.lanterna.input.KeyStroke;
+import com.googlecode.lanterna.input.KeyType;
+import com.googlecode.lanterna.screen.Screen;
+import com.googlecode.lanterna.screen.TerminalScreen;
+import com.googlecode.lanterna.terminal.DefaultTerminalFactory;
+import com.googlecode.lanterna.terminal.Terminal;
+
+public class Tempest {
+
+  // Globális változók, hogy a Lanterna azonnal elérje őket fájlolvasás nélkül is
+  public static int p_hp = 30;
+  public static String p_weapon = "fist";
+  public static int p_dmg = 10;
+  public static int p_gold = 150;
+  public static final String ut = "adatok_tarolasa.txt";
+
+  // Adatok beolvasása a fájlból a játék legelején (CSAK EGYSZER FUT LE)
+  public static void adatokBetoltese(String file_Path) {
+    try {
+      RandomAccessFile adatok = new RandomAccessFile(file_Path, "r");
+      String sor;
+      while ((sor = adatok.readLine()) != null) {
+        if (sor.contains("=")) {
+          String[] parts = sor.split("=");
+          String kulcs = parts[0].trim();
+          String ertek = parts[1].trim();
+
+          if (kulcs.equals("charakter_hp")) p_hp = Integer.parseInt(ertek);
+          else if (kulcs.equals("equipped_Weapon")) p_weapon = ertek;
+          else if (kulcs.equals("gold_mennyiseg")) p_gold = Integer.parseInt(ertek);
+        }
+      }
+      adatok.close();
+
+      // Sebzés kiszámítása a betöltött fegyver alapján
+      p_dmg = weapon_Dmg_Kiszamol(file_Path, p_weapon);
+    } catch (IOException e) {
+      System.out.println("Hiba a betöltéskor: " + e.getMessage());
+    }
+  }
+
+  public static int weapon_Dmg_Kiszamol(String file_Path, String fegyverNev) {
+    try {
+      RandomAccessFile adatok = new RandomAccessFile(file_Path, "r");
+      String sor;
+      while ((sor = adatok.readLine()) != null) {
+        if (sor.contains("=")) {
+          String[] parts = sor.split("=");
+          if (parts[0].trim().equals(fegyverNev)) {
+            adatok.close();
+            return Integer.parseInt(parts[1].trim());
+          }
+        }
+      }
+      adatok.close();
+    } catch (IOException e) {
+      // Alapértelmezett értékek, ha nem találná a fájlban
+    }
+    if (fegyverNev.equals("wooden sword")) return 25;
+    if (fegyverNev.equals("long sword")) return 50;
+    return 10;
+  }
+
+  // Fájl mentése változások után
+  public static void adatokMentese(String file_Path) {
+    try {
+      RandomAccessFile adatok = new RandomAccessFile(file_Path, "rw");
+      adatok.seek(0);
+      adatok.setLength(0);
+      adatok.writeBytes("fist = 10\n");
+      adatok.writeBytes("wooden sword = 25\n");
+      adatok.writeBytes("long sword = 50\n");
+      adatok.writeBytes("equipped_Weapon = " + p_weapon + "\n");
+      adatok.writeBytes("charakter_hp = " + p_hp + "\n");
+      adatok.writeBytes("equipped_Armor = nincs\n");
+      adatok.writeBytes("gold_mennyiseg = " + p_gold + "\n");
+      adatok.close();
+    } catch (IOException e) {
+      System.out.println("Sikertelen mentés!");
+    }
+  }
+
+  public static void fal_rajz(TextGraphics tg) {
+    int felso_X = 15; int felso_Y = 5;
+    int also_X = 15;  int also_Y = 44;
+    int bal_X = 14;   int bal_Y = 5;
+    int jobb_X = 165; int jobb_Y = 5;
+
+    int hozzaadas = 0;
+    for (int i = 0; i < 149; i++) {
+      hozzaadas++;
+      tg.putString(felso_X + hozzaadas, felso_Y, "=");
+      tg.putString(also_X + hozzaadas, also_Y, "=");
+    }
+    hozzaadas = 0;
+    for (int i = 0; i < 38; i++) {
+      hozzaadas++;
+      tg.putString(bal_X, bal_Y + hozzaadas, "||");
+      tg.putString(jobb_X, jobb_Y + hozzaadas, "||");
+    }
+  }
+
+  // ITT A JAVÍTÁS: Nem a fájlból olvas másodpercenként 60-szor, hanem a memóriából!
+  public static void karakter_informaciok(TextGraphics tg) {
+    tg.putString(15, 2, "Eletero: " + p_hp + "  ");
+    tg.putString(15, 3, "Fegyver: " + p_weapon + "        ");
+    tg.putString(15, 4, "Sebzes: " + p_dmg + "  ");
+  }
+
+  public static String kiiratas(String szo) {
+    String[] tomb = szo.split("");
+    ArrayList<String> Tomb = new ArrayList<>(Arrays.asList(tomb));
+    int szamlalo = 0;
+    for (String i : Tomb) {
+      if (i.equals(".")) szamlalo++;
+    }
+    if (szamlalo >= 2) {
+      int index = 0;
+      for (int i = 0; i < Tomb.size(); i++) {
+        if (Tomb.get(i).equals(".")) { index = i; break; }
+      }
+      Tomb.set(index, "[");
+      Tomb.set((index + 1), "]");
+      StringBuilder uj_Szo = new StringBuilder();
+      for (String i : Tomb) uj_Szo.append(i);
+      return uj_Szo.toString();
+    } else {
+      return szo;
+    }
+  }
+
+
+  public static Boolean akadaly_Hely(int x, int y) {
+    return (x > 15 && x < 159) && (y > 5 && y < 44);
+  }
+
+
+
+  public static void bolt(int x, int y, TextGraphics tg) {
+    String[] boltHaz = {
+            "  /=========\\  ",
+            " /   BOLT    \\ ",
+            "|=============|",
+            "|  _   [ ]    |",
+            "| | |  [_]    |"
+    };
+    int X = 80; int Y = 20;
+    for (int i = 0; i < boltHaz.length; i++) {
+      tg.putString(X, (Y + i), boltHaz[i]);
+    }
+    int karakterhossz = 7;
+    if (x + karakterhossz - 2 >= 80 && x < 94 && y >= 20 && y <= 24) {
+      tg.putString(80, 30, "Nyomj 'E'");
+    }
+  }
+
+  public static Boolean bolt_helyzet(int x, int y, TextGraphics tg) {
+    int karakterhossz = 7;
+    return x + karakterhossz - 2 >= 80 && x < 94 && y >= 20 && y <= 24;
+  }
+
+  public static void buy(Screen screen, TextGraphics tg) throws IOException, InterruptedException {
+    KeyStroke gombnyomas = null;
+    String[] sziv = { " .-. .-. ", "(   X   )", " \\     / ", "  \\   /  ", "   `-'   " };
+    String[] kard = { "   |   ", "   |   ", "   |   ", " --|-- ", "   o   " };
+
+    while (true) {
+      screen.clear();
+
+      for (int i = 0; i < sziv.length; i++) tg.putString(50, 25 + i, sziv[i]);
+      tg.putString(50, 32, "nyomj 'H' 50 gold (+5 HP)");
+
+      for (int i = 0; i < kard.length; i++) tg.putString(110, 25 + i, kard[i]);
+      tg.putString(110, 32, "nyomj 'D' 100 gold (Kard+ )");
+
+      tg.putString(25, 9, "Goldod szama: " + p_gold + "   ");
+      screen.refresh();
+
+      gombnyomas = screen.readInput();
+      if (gombnyomas != null && gombnyomas.getKeyType() == KeyType.Escape) {
+        break;
+      }
+
+      if (gombnyomas != null && gombnyomas.getKeyType() == KeyType.Character) {
+        char betu = Character.toLowerCase(gombnyomas.getCharacter());
+        switch (betu) {
+          case 'h':
+            if (p_gold >= 50) {
+              p_hp += 5;
+              p_gold -= 50;
+              adatokMentese(ut); // Mentés a fájlba
+              tg.putString(50, 35, "Sikeresen kaptal 5 eleterot!");
+              screen.refresh();
+              Thread.sleep(1000);
+            } else {
+              tg.putString(50, 35, "Nincs eleg goldod!");
+              screen.refresh();
+              Thread.sleep(1000);
+            }
+            break;
+
+          case 'd':
+            if (p_gold >= 100) {
+              if (p_weapon.equals("long sword")) {
+                tg.putString(110, 35, "Mar a legjobb fegyvered van!");
+                screen.refresh();
+                Thread.sleep(1000);
+              } else {
+                if (p_weapon.equals("fist")) p_weapon = "wooden sword";
+                else if (p_weapon.equals("wooden sword")) p_weapon = "long sword";
+
+                p_gold -= 100;
+                p_dmg = weapon_Dmg_Kiszamol(ut, p_weapon);
+                adatokMentese(ut); // Mentés a fájlba
+                tg.putString(110, 35, "A fegyvered '" + p_weapon + "' lett!");
+                screen.refresh();
+                Thread.sleep(1000);
+              }
+            } else {
+              tg.putString(110, 35, "Nincs eleg goldod!");
+              screen.refresh();
+              Thread.sleep(1000);
+            }
+            break;
+        }
+      }
+    }
+  }
+
+
+
+  public static void boss_portal(int x, int y, TextGraphics tg) throws IOException {
+    String[] portal = {
+            "   .--------.   ",
+            "  /          \\  ",
+            " |    KAPU    | ",
+            " |   ( ) ( )  | ",
+            " |  (   .   ) | ",
+            " |   ( ) ( )  | ",
+            " |            | ",
+            " |====BOSS====| ", // Itt a portál alja a boss felirattal
+            " '------------' "
+    };
+    int X = 120; int Y = 20;
+    for (int i = 0; i < portal.length; i++) {
+      tg.putString(X, (Y + i), portal[i]);
+    }
+    int karakterhossz = 7;
+    if (x + karakterhossz - 2 >= 120 && x < 135 && y >= 20 && y <= 28) {
+      tg.putString(120, 30, "Nyomj 'E'");
+    }
+  }
+
+  public static Boolean boss_helyzet(int x, int y, TextGraphics tg) {
+    int karakterhossz = 7;
+    return x + karakterhossz - 2 >= 120 && x < 135 && y >= 20 && y <= 28;
+  }
+
+  public static void jatek_Intro(TextGraphics tg, Screen screen) throws IOException, InterruptedException {
+    // 1. ASCII Art rajzolása (soronként)
+    String[] Tempest_logo = {
+            "===========================================================",
+            "  _______  ______  __  __  _____  ______   _____  _______ ",
+            " |__   __||  ____||  \\/  ||  __ \\|  ____| / ____||__   __|",
+            "    | |   | |__   | \\  / || |__) | |__   | (___     | |   ",
+            "    | |   |  __|  | |\\/| ||  ___/|  __|   \\___ \\    | |   ",
+            "    | |   | |____ | |  | || |    | |____  ____) |   | |   ",
+            "    |_|   |______||_|  |_||_|    |______||_____/    |_|   ",
+            "==========================================================",
+            "                  V E R S I O N  1 . 0                    "
+    };
+
+    // logo kirajzolasa
+    tg.setForegroundColor(TextColor.ANSI.CYAN);
+    for (int i = 0; i < Tempest_logo.length; i++) {
+      tg.putString(60, i + 10, Tempest_logo[i]);
+    }
+    screen.refresh();
+
+    // a jatek elinditasa
+    boolean visible = true;
+    while (true) {
+      // Billentyűzet ellenőrzése
+      KeyStroke keyStroke = screen.pollInput();
+      if (keyStroke != null) {
+        if (keyStroke.getKeyType() == KeyType.Enter) {
+          break;
+        }
+      }
+
+      if (visible) {
+        tg.setForegroundColor(TextColor.ANSI.WHITE);
+        tg.putString(60, 24, " » Játék kezdete! (Nyomj entert) ");
+      } else {
+        tg.putString(60, 24, "                                          ");
+      }
+
+      screen.refresh();
+      visible = !visible;
+      Thread.sleep(500);
+    }
+
+    tg.putString(60, 24, "                                          ");
+    screen.refresh();
+    int darab = 0;
+    int szin = 0;
+    String start = "Játék indítása: ............";
+
+    // betolto kep
+    while (darab < 2) {
+      if (szin == 0) {
+        tg.setForegroundColor(TextColor.ANSI.RED);
+      } else {
+        tg.setForegroundColor(TextColor.ANSI.YELLOW_BRIGHT);
+      }
+      tg.putString(75, 26, start);
+      screen.refresh();
+      Thread.sleep(400);
+
+      start = kiiratas(start); // Feltételezve, hogy a 'kiiratas' függvényed létezik a classban
+      tg.putString(75, 26, start);
+      screen.refresh();
+      Thread.sleep(400);
+
+      if (szin == 0) {
+        tg.setForegroundColor(TextColor.ANSI.YELLOW);
+      } else {
+        tg.setForegroundColor(TextColor.ANSI.GREEN_BRIGHT);
+      }
+
+      start = kiiratas(start);
+      tg.putString(75, 26, start);
+      screen.refresh();
+      Thread.sleep(400);
+
+      start = kiiratas(start);
+      tg.putString(75, 26, start);
+      screen.refresh();
+      Thread.sleep(400);
+
+      darab++;
+      szin++;
+    }
+
+    String[] Start_logo = {
+            "===========================================================",
+            "      _____   _______                _____    _______ ",
+            "     / ____| |__   __|      /\\      |  __ \\  |__   __|",
+            "    | (___      | |        /  \\     | |__) |    | |   ",
+            "     \\___ \\     | |       / /\\ \\    |  _  /     | |   ",
+            "     ____) |    | |      / ____ \\   | | \\ \\     | |   ",
+            "    |_____/     |_|     /_/    \\_\\  |_|  \\_\\    |_|   ",
+            "                                                      ",
+            "===========================================================",
+            "            A J Á T É K  E L K E Z D Ő D Ö T T            "
+    };
+
+    screen.clear();
+    screen.refresh();
+
+    // start felirat
+    tg.setForegroundColor(TextColor.ANSI.WHITE);
+    for (int i = 0; i < Start_logo.length; i++) {
+      tg.putString(60, i + 15, Start_logo[i]);
+    }
+    screen.refresh();
+    Thread.sleep(3000);
+  }
+
+  public static void toltokepernyo (Screen screen, TextGraphics tg) throws IOException, InterruptedException {
+    screen.clear();
+    String[] kocka = {
+            "████",
+            "████"
+    };
+    //felso
+    for (int i = 0; i < kocka.length; i++) {
+      tg.putString(90, 18+i,kocka[i]);
+    }
+    screen.refresh();
+    Thread.sleep(300);
+
+    //jobb oldali
+    for (int i = 0; i < kocka.length; i++) {
+      tg.putString(103, 24+i,kocka[i]);
+    }
+    screen.refresh();
+    Thread.sleep(300);
+
+    //also
+    for (int i = 0; i < kocka.length; i++) {
+      tg.putString(90, 30+i,kocka[i]);
+    }
+    screen.refresh();
+    Thread.sleep(300);
+
+    //bal oldali
+    for (int i = 0; i < kocka.length; i++) {
+      tg.putString(77, 24+i,kocka[i]);
+    }
+    screen.refresh();
+    Thread.sleep(300);
+  }
+
+
+  public static void main(String[] args) throws IOException, InterruptedException {
+
+    Scanner xc = new Scanner(System.in);
+    boolean mehet = false;
+    System.out.println("Valassz! 1-folytatas 2-uj jatek");
+    String valasz = xc.nextLine();
+
+    while (!mehet) {
+      try {
+        int v = Integer.parseInt(valasz);
+        if (v == 2) {
+          // Alaphelyzetbe állítjuk a globális változókat
+          p_hp = 30;
+          p_weapon = "fist";
+          p_dmg = 10;
+          p_gold = 150;
+          adatokMentese(ut); // Ráírjuk a tiszta adatokat a fájlra
+          System.out.println("Uj jatek elinditva.");
+          Thread.sleep(1000);
+          mehet = true;
+        } else if (v == 1) {
+          // Betöltjük a meglévő fájlt a változókba
+          adatokBetoltese(ut);
+          System.out.println("Folytatas a mentett adatokkal.");
+          Thread.sleep(1000);
+          mehet = true;
+        } else {
+          System.out.println("Valassz! 1-folytatas 2-uj jatek");
+          valasz = xc.nextLine();
+        }
+      } catch (NumberFormatException e) {
+        System.out.println("Valassz! 1-folytatas 2-uj jatek");
+        valasz = xc.nextLine();
+      }
+    }
+
+    TerminalSize size = new TerminalSize(180, 50);
+    DefaultTerminalFactory factory = new DefaultTerminalFactory().setInitialTerminalSize(size);
+    Terminal terminal = factory.createTerminal();
+    Screen screen = new TerminalScreen(terminal);
+    screen.startScreen();
+    screen.setCursorPosition(null);
+    TextGraphics tg = screen.newTextGraphics();
+
+    int playerX = 80;
+    int playerY = 30;
+    boolean isRunning = true;
+    String karakter = "(<*-*)<";
+
+    //jatek inditasa
+    jatek_Intro(tg,screen);
+
+    while (isRunning) {
+      screen.clear();
+
+      tg.setForegroundColor(TextColor.ANSI.WHITE);
+
+      fal_rajz(tg); //fal
+      bolt(playerX, playerY, tg); //bolt
+      karakter_informaciok(tg); //bal fenti sarok
+      boss_portal(playerX, playerY, tg); //portal
+
+      tg.setForegroundColor(TextColor.ANSI.MAGENTA_BRIGHT);
+      tg.putString(new TerminalPosition(playerX, playerY), karakter);
+
+      screen.refresh();
+
+      KeyStroke gombnyomas = screen.readInput();
+
+      if (gombnyomas != null) {
+        if (gombnyomas.getKeyType() == KeyType.Escape) {
+          isRunning = false;
+        } else if (gombnyomas.getKeyType() == KeyType.Character) {
+          char betu = Character.toLowerCase(gombnyomas.getCharacter());
+          switch (betu) {
+            case 'w': if (akadaly_Hely(playerX, playerY - 1)) playerY--; break;
+            case 's': if (akadaly_Hely(playerX, playerY + 1)) playerY++; break;
+            case 'a': if (akadaly_Hely(playerX - 1, playerY)) playerX--; break;
+            case 'd': if (akadaly_Hely(playerX + 1, playerY)) playerX++; break;
+            case 'e':
+              if (bolt_helyzet(playerX, playerY, tg)) {
+                toltokepernyo(screen,tg);
+                buy(screen, tg);
+                toltokepernyo(screen,tg);
+              } else if (boss_helyzet(playerX,playerY,tg)) {
+                //boss fight fuggvenye
+              }
+              break;
+          }
+        }
+      }
+    }
+
+    screen.stopScreen();
+    System.out.println("Program leallt, visszateres a konzolhoz.");
+  }
+}
